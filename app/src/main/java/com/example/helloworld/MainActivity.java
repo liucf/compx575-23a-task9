@@ -79,8 +79,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         if (!contactExists) {
             contacts.add(new Contact(name, email, mobile));
         }
-
-        adapter.notifyDataSetChanged();
+        if(adapter!=null) {
+            adapter.notifyDataSetChanged();
+        }
     }
 
     @Override
