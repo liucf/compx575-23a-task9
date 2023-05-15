@@ -83,8 +83,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
+
         android:onClick="saveContact"
-        android:text="Save contact"
-        />
+        android:text="Save contact" />
+
+    <Button
+        android:id="@+id/btnSubmitDelete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        android:background="#FF0057"
+        android:onClick="deleteContact"
+        android:text="Delete contact" />
 </RelativeLayout>

@@ -1,11 +1,25 @@
 package com.example.helloworld;
 
+
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "contact_table")
 public class Contact implements Parcelable {
+    @PrimaryKey(autoGenerate = true)
+    public long id;
+
+    @ColumnInfo(name = "name")
     public String name;
+
+    @ColumnInfo(name = "email")
     public String email;
+
+    @ColumnInfo(name = "mobile")
     public String mobile;
 
     public Contact(String name, String email, String mobile) {
