@@ -1,10 +1,17 @@
 package com.example.helloworld;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -20,122 +27,68 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private ArrayList<Contact> contacts = new ArrayList<Contact>();
     private ArrayAdapter<Contact> adapter;
     private ListView contactListView;
-    private ContactRepository contactRepository;
+    //    private ContactRepository contactRepository;
+    private ContactViewModel contactViewModel;
+    public static final int NEW_CONTACT_ACTIVITY_REQUEST_CODE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        contactRepository = new ContactRepository(this);
+        adapter = new ArrayAdapter<Contact>(this, android.R.layout.simple_list_item_1, contacts);
+        contactViewModel = new ViewModelProvider(this).get(ContactViewModel.class);
+        contactViewModel.getAllContacts().observe(this, contacts -> {
+            // Update the cached copy of the words in the adapter.
+            adapter.clear();
+            adapter.addAll(contacts);
+            adapter.notifyDataSetChanged();
+        });
 
-//        contactRepository.getAllContacts().observe(this, new Observer<List<Contact>>() {
-//            @Override
-//            public void onChanged(List<Contact> updatedContacts) {
-//                // update the contacts list when the database changes
-//                adapter.clear();
-//                adapter.addAll(Collections.singleton(updatedContacts));
-//            }
-//        });
-
-
-
-//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        // Setup Adapter
         contactListView = findViewById(R.id.contactsListView);
         if (contactListView != null) {
-            adapter = new ArrayAdapter<Contact>(this,
-                    android.R.layout.simple_list_item_1, contacts);
             contactListView.setAdapter(adapter);
             contactListView.setOnItemClickListener(this);
+        }
 
-            contactRepository.getAllContacts().observe(this, updatedContacts -> {
-                adapter.clear();
-                adapter.addAll(updatedContacts);
+        EditText searchField = findViewById(R.id.searchtext);
+        if(searchField != null) {
+            searchField.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+                }
+
+                @Override
+                public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+                }
+
+                @Override
+                public void afterTextChanged(Editable editable) {
+//                    Toast.makeText(MainActivity.this, "Searching for " + editable.toString(), Toast.LENGTH_SHORT).show();
+                    if(editable.toString().isEmpty()) {
+                        contactViewModel.getAllContacts().observe(MainActivity.this, contacts -> {
+                            // Update the cached copy of the words in the adapter.
+                            adapter.clear();
+                            adapter.addAll(contacts);
+                            adapter.notifyDataSetChanged();
+                        });
+                    }else {
+                        contactViewModel.findContacts(editable.toString()).observe(MainActivity.this, contacts -> {
+                            // Update the cached copy of the words in the adapter.
+                            adapter.clear();
+                            adapter.addAll(contacts);
+                            adapter.notifyDataSetChanged();
+                        });
+                    }
+                }
             });
         }
-
-        if(savedInstanceState != null && savedInstanceState.getParcelableArrayList("contacts") != null) {
-            for (Parcelable contact : savedInstanceState.getParcelableArrayList("contacts")) {
-//                contacts.add((Contact) contact);
-            }
-        }
-//        else {
-            // Add some Contacts
-//            contacts.add(new Contact("Joe Bloggs", "joe@bloggs.co.nz",
-//                    "021123456"));
-//            contacts.add(new Contact("Jane Doe", "jane@doe.co.nz",
-//                    "022123456"));
-//        }
     }
 
-    public void saveContact(View view) {
-        EditText nameField = findViewById(R.id.name);
-        String name = nameField.getText().toString();
-
-        EditText emailField = findViewById(R.id.email);
-        String email = emailField.getText().toString();
-
-        EditText mobileField = findViewById(R.id.mobile);
-        String mobile = mobileField.getText().toString();
-        Toast.makeText(this, "Saved contact for " + name + ", Email: " + email + ", Mobile: " + mobile,
-                Toast.LENGTH_SHORT).show();
-
-        boolean contactExists = false;
-        Contact existingContact = null;
-        for (int i = 0; i < contacts.size(); i++) {
-            existingContact = contacts.get(i);
-            if (existingContact.toString().equals(name.toString())) {
-                // Update the existing contact's information
-                existingContact.mobile = mobile;
-                existingContact.email = email;
-                contactExists = true;
-                break;
-            }
-        }
-
-        // If the contact doesn't already exist, add it to the ArrayList
-        if (!contactExists) {
-            // contacts.add(new Contact(name, email, mobile));
-            contactRepository.insert(new Contact(name, email, mobile));
-        }else {
-            contactRepository.update(existingContact);
-        }
-//        if(adapter!=null) {
-//            adapter.notifyDataSetChanged();
-//        }
-    }
-
-    public void deleteContact(View view) {
-        EditText nameField = findViewById(R.id.name);
-        String name = nameField.getText().toString();
 
 
-        EditText emailField = findViewById(R.id.email);
-        String email = emailField.getText().toString();
-
-        EditText mobileField = findViewById(R.id.mobile);
-        String mobile = mobileField.getText().toString();
-
-        if(name != "") {
-            Contact existingContact = null;
-            for (int i = 0; i < contacts.size(); i++) {
-                existingContact = contacts.get(i);
-                if (existingContact.toString().equals(name.toString())) {
-                    // delete this contact
-                    contactRepository.delete(existingContact);
-                    break;
-                }
-            }
-
-            nameField.setText("");
-            emailField.setText("");
-            mobileField.setText("");
-        }
-        if(adapter!=null) {
-            adapter.notifyDataSetChanged();
-        }
-    }
 
 
     @Override
@@ -143,20 +96,75 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Contact contact = (Contact) adapterView.getAdapter().getItem(i);
 //        Toast.makeText(adapterView.getContext(), "Clicked " + contact.name + ", Email: " + contact.email + ", Mobile: " + contact.mobile,
 //                Toast.LENGTH_SHORT).show();
-        EditText nameField = findViewById(R.id.name);
-        nameField.setText(contact.name);
 
-        EditText emailField = findViewById(R.id.email);
-        emailField.setText(contact.email);
+        Intent intent = new Intent(MainActivity.this, NewContactActivity.class);
 
-        EditText mobileField = findViewById(R.id.mobile);
-        mobileField.setText(contact.mobile);
+        if (contact != null) {
+            intent.putExtra("contact", contact);
+        }
+        startActivityForResult.launch(intent);
     }
+
+    public void showAddContact(View view) {
+        Intent intent = new Intent(MainActivity.this, NewContactActivity.class);
+        startActivityForResult.launch(intent);
+    }
+
+    ActivityResultLauncher<Intent> startActivityForResult = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == AppCompatActivity.RESULT_OK) {
+                    Intent data = result.getData();
+                }
+            }
+    );
 
 
     @Override
-    public void onSaveInstanceState(Bundle savedState) {
-        savedState.putParcelableArrayList("contacts", contacts);
-        super.onSaveInstanceState(savedState);
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            String action = data.getStringExtra("action");
+            Contact contact = data.getParcelableExtra("contact");
+            if (action.equals("save")) {
+                boolean contactExists = false;
+                Contact existingContact = null;
+                for (int i = 0; i < contacts.size(); i++) {
+                    existingContact = contacts.get(i);
+                    if (existingContact.name.toString().equals(contact.name.toString())) {
+                        // Update the existing contact's information
+                        existingContact.mobile = contact.mobile;
+                        existingContact.email = contact.email;
+                        contactExists = true;
+                        break;
+                    }
+                }
+                // If the contact doesn't already exist, add it to the ArrayList
+                if (!contactExists) {
+                    // contacts.add(new Contact(name, email, mobile));
+                    contactViewModel.insert(contact);
+                } else {
+                    contactViewModel.update(existingContact);
+                }
+            } else if (action.equals("delete")) {
+                boolean contactExists = false;
+                Contact existingContact = null;
+                for (int i = 0; i < contacts.size(); i++) {
+                    existingContact = contacts.get(i);
+                    if (existingContact.name.toString().equals(contact.name.toString())) {
+                        // Update the existing contact's information
+                        existingContact.mobile = contact.mobile;
+                        existingContact.email = contact.email;
+                        contactExists = true;
+                        break;
+                    }
+                }
+                // If the contact doesn't already exist, add it to the ArrayList
+                if (contactExists) {
+                    contactViewModel.delete(existingContact);
+                }
+            }
+        }
+        adapter.notifyDataSetChanged();
     }
 }

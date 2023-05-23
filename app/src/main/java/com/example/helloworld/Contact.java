@@ -35,7 +35,7 @@ public class Contact implements Parcelable {
     }
 
     public String toString() {
-        return name;
+        return name + ", " + email + ", " + mobile;
     }
 
     @Override

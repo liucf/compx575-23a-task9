@@ -43,4 +43,8 @@ public class ContactRepository {
     public LiveData<List<Contact>> getAllContacts() {
         return allContacts;
     }
+
+    public LiveData<List<Contact>> findContacts(String toString) {
+        return contactDao.findContacts(toString);
+    }
 }

@@ -23,4 +23,7 @@ public interface ContactDao {
 
     @Query("SELECT * from contact_table ORDER BY name")
     LiveData<List<Contact>> getAllContacts();
+
+    @Query("SELECT * from contact_table WHERE name LIKE '%' || :query || '%' OR email LIKE '%' || :query || '%' OR mobile LIKE '%' || :query || '%'")
+    LiveData<List<Contact>> findContacts(String query);
 }
